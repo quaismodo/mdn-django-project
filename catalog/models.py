@@ -49,6 +49,15 @@ class Book(models.Model):
         """
         return reverse('book-detail', args=[str(self.id)])
 
+    def display_genre(self):
+        """
+        Creates a string for the Genre. This is required to display genre in Admin.
+        :return:
+        """
+        return ', '.join([genre.name for genre in self.genre.all()[:3]])
+
+    display_genre.short_description = 'Genre'
+
 
 class BookInstance(models.Model):
     """
@@ -96,6 +105,13 @@ class Author(models.Model):
         """
         Returns the url to access a particular author instance.
         Возвращает URL-адрес для доступа к конкретному экземпляру автора
+        :return:
+        """
+        return reverse('author-detail', args=[str(self.id)])
+
+    def __str__(self):
+        """
+        String for representing the Model object.
         :return:
         """
         return '{last_name}, {first_name}'.format(last_name=self.last_name, first_name=self.first_name)
