@@ -4,6 +4,10 @@ from .models import Book, Genre, BookInstance, Author
 
 from django.views import generic
 
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from django.contrib.auth.mixins import PermissionRequiredMixin
+
 
 # Create your views here.
 def index(request):
@@ -26,6 +30,10 @@ def index(request):
     # Количество книг, содержащих слово War без учета регистра
     num_matches_books = Book.objects.filter(title__icontains='war').count()
 
+    # Number of visits to this view, as counted in the session variable.
+    num_visits = request.session.get('num_visits', 0)
+    request.session['num_visits'] = num_visits + 1
+
     return render(request,
                   'index.html',
                   context={
@@ -34,7 +42,8 @@ def index(request):
                       'num_instances_available': num_instances_available,
                       'num_authors': num_authors,
                       'num_genres': num_genres,
-                      'num_matches_books': num_matches_books, }, )
+                      'num_matches_books': num_matches_books,
+                      'num_visits': num_visits, }, )
 
 
 class BookListView(generic.ListView):
@@ -69,3 +78,26 @@ class AuthorListView(generic.ListView):
 
 class AuthorDetailView(generic.DetailView):
     model = Author
+
+
+class LoanedBooksByUserListView(LoginRequiredMixin, generic.ListView):
+    """
+    Generic class-based view listing books on loan to current user.
+    """
+    model = BookInstance
+    template_name = 'catalog/bookinstance_list_borrowed_user.html'
+    paginate_by = 10
+
+    def get_queryset(self):
+        return BookInstance.objects.filter(borrower=self.request.user).filter(status__exact='o').order_by('due_back')
+
+class LoanedBooksAllListView(PermissionRequiredMixin, generic.ListView):
+    model = BookInstance
+    permission_required = 'catalog.can_mark_returned'
+    template_name = 'catalog/bookinstance_list_borrowed_all.html'
+    paginate_by = 10
+
+    def get_queryset(self):
+        return BookInstance.objects.filter(status__exact='o').order_by('due_back')
+
+
